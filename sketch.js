@@ -9,7 +9,7 @@ function setup() {
     createCanvas(img.width, img.height);
 
     img.loadPixels();
-
+ù
     let d = pixelDensity();
 
     for (let x = 0; x < width; x++) {

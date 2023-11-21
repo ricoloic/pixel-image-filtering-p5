@@ -278,3 +278,52 @@ function setup() {
 ```
 
 ![loic](./loic5.png)
+
+## _other variant_
+
+#### _lets use the color of the image and only apply it to the pixels where the chromatic value is higher then the threshold_
+
+```js
+const threshold = 150;
+let img;
+
+function preload() {
+    img = loadImage("loic.jpeg");
+}
+
+function setup() {
+    createCanvas(img.width, img.height);
+
+    img.loadPixels();
+    loadPixels();
+
+    let d = pixelDensity();
+
+    for (let x = 0; x < width; x++) {
+        for (let y = 0; y < height; y++) {
+            const index = 4 * ((d + y) * width * d + (d + x));
+            const r = img.pixels[index];
+            const g = img.pixels[index + 1];
+            const b = img.pixels[index + 2];
+            const a = img.pixels[index + 3];
+
+            const cumulative = (r + g + b) / 3;
+
+            if (cumulative > threshold) {
+                pixels[index] = img.pixels[index];
+                pixels[index + 1] = img.pixels[index + 1];
+                pixels[index + 2] = img.pixels[index + 2];
+            } else {
+                pixels[index] = 0;
+                pixels[index + 1] = 0;
+                pixels[index + 2] = 0;
+            }
+            pixels[index + 3] = a;
+        }
+    }
+
+    updatePixels();
+}
+```
+
+![loic](./loic6.png)
