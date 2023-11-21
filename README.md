@@ -187,7 +187,7 @@ function setup() {
 ![loic](./loic2.png)
 
 
-### _3. add a threshold at which the pixel will be either black or white _
+### _3. add a threshold at which the pixel will be either black or white_
 
 
 
