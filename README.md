@@ -327,3 +327,261 @@ function setup() {
 ```
 
 ![loic](./loic6.png)
+
+## _now what? SHADER???_
+
+#### why, well currently our filter is running on the CPU, which is really powerfull but can't do a lot of process/calculation all at once. So instead we can convert our code/filter to be ran on the GPU which is not as powerful as the CPU but allow for a lot more processes to be ran at once
+
+we first need to create a shader file, which will be used to run our filter on the GPU
+
+create a shader.vert file (vertex shader) that will contain a main function
+```glsl
+// vertex shader
+void main() {
+    // ...
+}
+```
+
+the vertex shader will be used to define the position of the pixels on the canvas that we want to update the color for
+
+set the position in the vertex shader
+```glsl
+// vertex shader
+attribute vec3 aPosition;
+
+void main() {
+    gl_Position = vec4(aPosition, 1.0);
+}
+```
+
+we have now introduced a new variable `aPosition` which will be used to set the position of the pixels on the canvas
+
+note that this variable is provided by p5js when using the `shader()` function
+
+create a shader.frag file (fragment shader) that will contain a main function
+```glsl
+// fragment shader
+void main() {
+    // ...
+}
+```
+
+the fragment shader will be used to define the color of the pixels on the canvas that we want to update
+
+set the color in the fragment shader
+```glsl
+// fragment shader
+void main() {
+    gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+}
+```
+
+we have now set the color of the pixels to red for each pixels
+
+now lets update our sketch to use those new shaders
+
+```js
+let img;
+let shd;
+
+function preload() {
+  img = loadImage("./loic.jpeg");
+  shd = loadShader('shader.vert', 'shader.frag');
+}
+
+function setup() {
+  createCanvas(img.width, img.height, WEBGL);
+}
+
+function draw() {
+  shader(shd);
+  rect(-(width / 2), -(height / 2), width, height);
+}
+```
+
+as we can see we have change the rendering mode to WEBGL, which will allow us to use shaders
+```js
+createCanvas(img.width, img.height, WEBGL);
+```
+
+by the same fact this as set the origin of our canvas to the center
+
+we then specify which shader to use in the draw loop
+```js
+shader(shd);
+```
+
+and finally we draw a rectangle that will be used to render the shader
+```js
+rect(-(width / 2), -(height / 2), width, height);
+```
+
+looking at the result we can see that the shader is applied to the canvas, but only a quarter of it is red...
+
+![shader-1.png](./shader-1.png)
+
+this is because the vertex shader start at the center of the canvas, so we need to update the position of the vertex to start at the bottom left corner of the canvas
+
+```glsl
+// vertex shader
+attribute vec3 aPosition;
+
+void main() {
+  vec4 positionVec4 = vec4(aPosition, 1.0);
+  // * 2 is to use the full canvas size
+  // - 1 is to place it back to a new origin (from the center to the bottom left)
+  positionVec4.xy = (positionVec4.xy * 2.0) - 1.0;
+  gl_Position = positionVec4;
+}
+```
+
+now looking at the result we can see that the shader is applied to the full canvas
+
+![shader-2.png](./shader-2.png)
+
+ok now that we have the canvas setup to use the shader let's add back our image using the shader
+
+first define a new uniform called u_texture that will be used to pass the image to the shader
+```js
+function draw() {
+    shader(shd);
+    shd.setUniform('u_resolution', [width, height]);
+    shd.setUniform('u_texture', img);
+    rect(-(width / 2), -(height / 2), width, height);
+}
+
+notice that we also defined a resolution for the shader, which will be used to calculate the position of the pixels on the canvas
+
+afterwhich we need to update the fragment shader to use the image
+
+```glsl
+// fragment shader
+uniform vec2 u_resolution;
+uniform sampler2D u_texture;
+
+void main() {
+    vec2 uv = gl_FragCoord.xy / u_resolution.xy;
+    vec4 color = texture2D(u_texture, uv);
+    gl_FragColor = color;
+}
+```
+
+now looking at the result we can see that the shader rendering our image
+
+![shader-3.png](./shader-3.png)
+
+one obvious issue is that the image is flipped, this is because the origin of the canvas is now at the bottom left corner instead of the top left corner
+
+we can correct that by flipping the y axis
+
+```glsl
+// fragment shader
+uniform vec2 u_resolution;
+uniform sampler2D u_texture;
+
+void main() {
+    vec2 uv = gl_FragCoord.xy / u_resolution.xy;
+    uv.y = 1.0 - uv.y; // flip the y axis
+    vec4 color = texture2D(u_texture, uv);
+    gl_FragColor = color;
+}
+```
+
+![shader-4.png](./shader-4.png)
+
+ok we are pretty much back to where we were at the start, now let's add back the chromatic effect
+
+```glsl
+// fragment shader
+uniform vec2 u_resolution;
+uniform sampler2D u_texture;
+
+void main() {
+    vec2 uv = gl_FragCoord.xy / u_resolution.xy;
+    uv.y = 1.0 - uv.y; // flip the y axis
+    vec4 color = texture2D(u_texture, uv);
+
+    float cumulative = (color.r + color.g + color.b) / 3.0;
+
+    gl_FragColor = vec4(cumulative, cumulative, cumulative, 1.0);
+}
+```
+
+![shader-5.png](./shader-5.png)
+
+now let's add back the threshold
+
+```glsl
+// fragment shader
+uniform vec2 u_resolution;
+uniform sampler2D u_texture;
+
+void main() {
+    vec2 uv = gl_FragCoord.xy / u_resolution.xy;
+    uv.y = 1.0 - uv.y; // flip the y axis
+    vec4 color = texture2D(u_texture, uv);
+
+    float cumulative = (color.r + color.g + color.b) / 3.0;
+
+    float treshold = 0.5;
+    cumulative = cumulative > treshold ? 1.0 : 0.0;
+
+    gl_FragColor = vec4(cumulative, cumulative, cumulative, 1.0);
+}
+```
+
+![shader-6.png](./shader-6.png)
+
+now let's add back the smoothening of the bright part of the threshold
+
+```glsl
+// fragment shader
+uniform vec2 u_resolution;
+uniform sampler2D u_texture;
+
+void main() {
+    vec2 uv = gl_FragCoord.xy / u_resolution.xy;
+    uv.y = 1.0 - uv.y; // flip the y axis
+    vec4 color = texture2D(u_texture, uv);
+
+    float cumulative = (color.r + color.g + color.b) / 3.0;
+
+    float treshold = 0.5;
+    cumulative = cumulative > treshold ? smoothstep(treshold, 1.0, cumulative) : 0.0;
+
+    gl_FragColor = vec4(cumulative, cumulative, cumulative, 1.0);
+}
+```
+
+![shader-7.png](./shader-7.png)
+
+now I also want the treshold to be dynamic, so let's add a uniform for it
+
+```js
+function draw() {
+    // ...
+    shd.setUniform('u_treshold', 0.5);
+    // ...
+}
+```
+
+```glsl
+// fragment shader
+uniform vec2 u_resolution;
+uniform sampler2D u_texture;
+uniform float u_treshold;
+
+void main() {
+    vec2 uv = gl_FragCoord.xy / u_resolution.xy;
+    uv.y = 1.0 - uv.y; // flip the y axis
+    vec4 color = texture2D(u_texture, uv);
+
+    float cumulative = (color.r + color.g + color.b) / 3.0;
+
+    cumulative = cumulative > u_treshold ? smoothstep(u_treshold, 1.0, cumulative) : 0.0;
+
+    gl_FragColor = vec4(cumulative, cumulative, cumulative, 1.0);
+}
+```
+
+If you want to play around with the code, you can find it here: https://editor.p5js.org/ricoloic/sketches/8xJ1ZF2kwb

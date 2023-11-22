@@ -1,31 +1,25 @@
-const lineHalfMaxLength = 100;
 let img;
+let shd;
+let tresholdSlider;
+
+function calcTreshold() {
+    return map(tresholdSlider.value(), 0, 255, 0, 1);
+}
 
 function preload() {
-    img = loadImage('loic.jpeg');
+    img = loadImage("./loic.jpeg");
+    shd = loadShader('./shader.vert', './shader.frag');
 }
 
 function setup() {
-    createCanvas(img.width, img.height);
+    createCanvas(img.width, img.height, WEBGL);
+    tresholdSlider = createSlider(0, 255, 120, 1);
+}
 
-    img.loadPixels();
-ù
-    let d = pixelDensity();
-
-    for (let x = 0; x < width; x++) {
-        for (let y = 0; y < height; y++) {
-            let index = 4 * ((d + y) * width * d + (d + x));
-            let r = img.pixels[index];
-            let g = img.pixels[index + 1];
-            let b = img.pixels[index + 2];
-            let a = img.pixels[index + 3];
-
-            let cumulative = (r + g + b) / 3;
-            cumulative = cumulative > 150 ? map(cumulative, 150, 255, 50, 255) : 0;
-
-            strokeWeight(random(3, 5));
-            stroke(cumulative, a);
-            line(x, y, x + random(-lineHalfMaxLength, lineHalfMaxLength), y);
-        }
-    }
+function draw() {
+    shader(shd);
+    shd.setUniform('u_resolution', [width, height]);
+    shd.setUniform('u_texture', img);
+    shd.setUniform('u_treshold', calcTreshold());
+    rect(-(width / 2), -(height / 2), width, height);
 }
