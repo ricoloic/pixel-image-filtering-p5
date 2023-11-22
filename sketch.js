@@ -20,6 +20,6 @@ function draw() {
     shader(shd);
     shd.setUniform('u_resolution', [width, height]);
     shd.setUniform('u_texture', img);
-    shd.setUniform('u_treshold', calcTreshold());
+    shd.setUniform('u_threshold', calcTreshold());
     rect(-(width / 2), -(height / 2), width, height);
 }

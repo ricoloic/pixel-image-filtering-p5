@@ -2,7 +2,7 @@ precision mediump float;
 
 uniform vec2 u_resolution;
 uniform sampler2D u_texture; // Input texture
-uniform float u_treshold;
+uniform float u_threshold;
 
 void main() {
   vec2 uv = gl_FragCoord.xy / u_resolution;
@@ -15,11 +15,11 @@ void main() {
 
   float cum = (texColor.r + texColor.g + texColor.b) / 3.0;
 
-  if (cum < u_treshold) {
-    texColor.r = 0.0;
-    texColor.g = 0.0;
-    texColor.b = 0.0;
-  }
+  texColor.rgb *= step(u_threshold, cum);
+
+  texColor.r = pow(texColor.r, 2.);
+  texColor.g = pow(texColor.g, 2.);
+  texColor.b = pow(texColor.b, 2.);
 
   gl_FragColor = texColor;
 }
