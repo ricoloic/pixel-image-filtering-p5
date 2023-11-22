@@ -449,6 +449,7 @@ function draw() {
     shd.setUniform('u_texture', img);
     rect(-(width / 2), -(height / 2), width, height);
 }
+```
 
 notice that we also defined a resolution for the shader, which will be used to calculate the position of the pixels on the canvas
 
